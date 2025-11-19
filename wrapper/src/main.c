@@ -21,10 +21,6 @@ struct termios origin;
 int loglevel;
 int logfd;
 
-#ifndef BSH_CONFIGPATH
-#define BSH_CONFIGPATH "/etc/brutalshell/config.conf"
-#endif
-
 #ifndef BUFLEN
 #define BUFLEN 1024
 #endif
@@ -38,8 +34,6 @@ int logfd;
 	loggin( log_error, "Error: ", error, 7 + len )
 
 signed main( int argc, char **argv ){
-
-	register char **child_exec;
 
 	register int err;
 
@@ -57,19 +51,12 @@ signed main( int argc, char **argv ){
 	register char *buf;
 	register ssize_t rlen;
 
-	get_configure( argc, argv, BSH_CONFIGPATH );
+	register struct config cfg = {};
 
-	if ( argc < 2 ){
-		child_exec = alloca( sizeof( *child_exec ) * 2 );
-		memset( child_exec, 0, sizeof( child_exec ) * 2 );
-		*child_exec = "/bin/sh";
-	} else {
-		if ( !strcmp( "?", *( argv + 1 ) ) ){
-			usage( *argv );
-			return EXIT_FAILURE;
-		}
+	cfg = get_configure( argc, argv );
 
-		child_exec = argv + 1;
+	if ( !cfg.argv ){
+		return EXIT_FAILURE;
 	}
 
 	if ( ( err = read_pty() ) < 0 ){
@@ -134,7 +121,7 @@ signed main( int argc, char **argv ){
 
 		close( master );
 
-		execvp( *child_exec, child_exec );
+		execvp( *cfg.argv, cfg.argv );
 
 		loggin( log_normal, "ERROR: ", "unable to run", 7 + 14 );
 		return EXIT_FAILURE;
@@ -142,7 +129,7 @@ signed main( int argc, char **argv ){
 
 	set_pty();
 
-	daemon_fd = connect_daemon( *child_exec, 0 );
+	daemon_fd = connect_daemon( cfg );
 
 	fds = alloca( sizeof( *fds ) * 3 );
 
@@ -179,7 +166,7 @@ signed main( int argc, char **argv ){
 			rlen = read( ( *( fds + 1 ) ).fd, buf, BUFLEN );
 			if ( rlen <= 0 ) break;
 			write( ( *( fds + 0 ) ).fd, buf, rlen ); /* write back for terminal user */
-			send_daemon( 0, ( *( fds + 2 ) ).fd, buf, rlen );
+			send_daemon( cfg.daemon_method, ( *( fds + 2 ) ).fd, buf, rlen );
 			continue;
 		}
 
