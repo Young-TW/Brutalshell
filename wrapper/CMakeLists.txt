@@ -7,7 +7,10 @@ option(ENABLE_DEBUG "compile for debug" OFF)
 
 set(CMAKE_C_STANDARD 99)
 add_definitions(-std=gnu99 -O3 -Wall -fPIC)
-set(COMPILE_FLAG)
+
+if (ENABLE_DEBUG)
+	add_definitions(-DDBG -g)
+endif()
 
 file(GLOB_RECURSE C_FILES src/*.c)
 
