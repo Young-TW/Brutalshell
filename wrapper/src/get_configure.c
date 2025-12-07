@@ -59,6 +59,10 @@ struct config get_configure( int argc, char **restrict argv ){
 		}
 	}
 
+#	ifdef DBG
+	fprintf( stderr, "cfg: %s\n", cfg_path );
+#	endif
+
 	fd = open( cfg_path, O_RDONLY );
 	if ( fd < 0 ){
 
@@ -97,11 +101,15 @@ RET:
 		cfg.desc = strdup( BSH_DEFAULT_DAEMON_PATH );
 	}
 
-	if ( !cfg.argv ){
+	if ( !cfg.argv || !*cfg.argv ){
 		cfg.argv = malloc( sizeof( *cfg.argv ) << 1 );
 		*( cfg.argv + 0 ) = strdup( "/bin/sh" );
 		*( cfg.argv + 1 ) = NULL;
 	}
+
+#	ifdef DBG
+	fprintf( stderr, "%s\n", *cfg.argv );
+#	endif
 
 	return cfg;
 
