@@ -8,7 +8,6 @@ import pyte
 import uuid
 
 DEFAULT_HOST = "http://100.68.65.78:8887"
-host = ''
 
 DAEMON_PATH = "/tmp/brutalshell.sock"
 
@@ -53,6 +52,17 @@ def content_filter(data: bytes):
 
     return "".join(lines)
 
+'''
+Receive WRAPPER_SESSION_ID, USER_MSG from helper.
+Send prompt to vllm, and send the response to wrapper
+'''
+def handle_helper(conn, data: bytes, host: str):
+    wrapper_session_id, user_msg = data.decode(encoding='utf-8').split('\x1f') # WRAPPER_SESSION_ID + \x1f + USER_MSG
+    context = content_filter(wrapper_sessions[wrapper_session_id]["buffer"])
+    prompt = f"Context: {context}\nUser input: {user_msg}"
+    suffix = vllm.completions(prompt, host)
+    wrapper_sessions[wrapper_session_id]["connection"].send(suffix.encode())
+    conn.close()
 
 '''
 Create a session id for wrapper.
@@ -72,7 +82,6 @@ def wrapper_server(session_id: str):
     
 def main():
     
-    global host
     host_env = os.getenv("VLLM_SERVER_URL")
     if host_env:
         host = host_env
@@ -97,16 +106,7 @@ def main():
                 conn.send(session_id.encode())
             
             if(b'\x1f' in data):
-                '''
-                Receive WRAPPER_SESSION_ID, USER_MSG from helper.
-                Send prompt to vllm, and send the response to wrapper
-                '''
-    
-                wrapper_session_id, user_msg = data.decode(encoding='utf-8').split('\x1f') # WRAPPER_SESSION_ID + \x1f + USER_MSG
-                context = content_filter(wrapper_sessions[wrapper_session_id]["buffer"])
-                prompt = f"Context: {context}\nUser input: {user_msg}"
-                suffix = vllm.completions(prompt, host)
-                wrapper_sessions[wrapper_session_id]["connection"].send(suffix.encode())
+                Thread(target=handle_helper, args=(conn, data, host)).start()
             else :
                 wrapper_sessions[session_id] = {
                     "server": Thread(target=wrapper_server, args=(session_id,)),
