@@ -7,6 +7,7 @@ option(ENABLE_DEBUG "compile for debug" OFF)
 option(BUILD_STATIC "build static lib" OFF)
 option(BUILD_SHARED "build shared lib" OFF)
 option(STATIC_FIRST "static lib has higher priority" ON)
+option(ENABLE_TESTS "build tests" ON)
 
 #set(CMAKE_INSTALL_PREFIX "/opt/tsl" CACHE STRING "Default installation directory")
 
@@ -72,6 +73,17 @@ install(TARGETS ${TARGET_NAME} ${TARGET_LIBS}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
+
+if (ENABLE_TESTS)
+	include(CTest)
+	enable_testing()
+
+	file(GLOB_RECURSE TEST_SRCS test/test_*.c)
+	add_executable(${TARGET_NAME}_test test/main.c ${TEST_SRCS} ${LIB_SRC})
+	target_include_directories(${TARGET_NAME}_test PRIVATE ${CMAKE_SOURCE_DIR})
+	target_link_libraries(${TARGET_NAME}_test PRIVATE yaml)
+	add_test(NAME ${TARGET_NAME}_test COMMAND ${TARGET_NAME}_test)
+endif()
 
 add_custom_target(clean_all
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}
