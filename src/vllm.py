@@ -18,6 +18,7 @@ def build_body(prompt: str):
     system_prompt = (
         "You are a smart CLI helper."
         "If there is insufficient information, guess the most likely instruction that begins with this input."
+        "If a single command cannot achieve the desired result, use && to combine the command into a single line."
         "Format: Always wrap the final command strictly in [[ ]]."
     )
     # print(prompt.encode())
