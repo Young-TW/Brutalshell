@@ -13,6 +13,9 @@ endif()
 file(GLOB_RECURSE C_FILES src/*.c)
 set_source_files_properties(${C_FILES} PROPERTIES LANGUAGE C)
 
+set(LIB_SRC ${C_FILES})
+list(FILTER LIB_SRC EXCLUDE REGEX ".*/main\\.c$")
+
 set(TARGET_NAME helper)
 add_executable(${TARGET_NAME} ${C_FILES})
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
@@ -20,6 +23,17 @@ target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
 install(TARGETS ${TARGET_NAME}
 	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
+
+option(ENABLE_TEST "build tests" ON)
+if (ENABLE_TEST)
+	include(CTest)
+	enable_testing()
+
+	file(GLOB_RECURSE TEST_SRCS test/test_*.c)
+	add_executable(${TARGET_NAME}_test test/main.c ${TEST_SRCS} ${LIB_SRC})
+	target_include_directories(${TARGET_NAME}_test PRIVATE ${CMAKE_SOURCE_DIR})
+	add_test(NAME ${TARGET_NAME}_test COMMAND ${TARGET_NAME}_test)
+endif()
 
 add_custom_target(clean_all
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}
